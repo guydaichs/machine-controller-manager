@@ -75,20 +75,20 @@ func (d *AWSDriver) Create() (string, string, error) {
 	}
 
 	var blkDeviceMappings []*ec2.BlockDeviceMapping
+	// handle root device
 	deviceName := output.Images[0].RootDeviceName
-	volumeSize := d.AWSMachineClass.Spec.BlockDevices[0].Ebs.VolumeSize
-	volumeType := d.AWSMachineClass.Spec.BlockDevices[0].Ebs.VolumeType
-	blkDeviceMapping := ec2.BlockDeviceMapping{
-		DeviceName: deviceName,
-		Ebs: &ec2.EbsBlockDevice{
-			VolumeSize: &volumeSize,
-			VolumeType: &volumeType,
-		},
-	}
-	if volumeType == "io1" {
-		blkDeviceMapping.Ebs.Iops = &d.AWSMachineClass.Spec.BlockDevices[0].Ebs.Iops
-	}
+	blkDeviceMapping := getDeviceMapping(deviceName, d.AWSMachineClass.Spec.BlockDevices[0], false)
 	blkDeviceMappings = append(blkDeviceMappings, &blkDeviceMapping)
+
+	// data devices
+	// naming https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
+	dnamePrefix := "/dev/sd"
+	dnameSuffix := "fghijklmnop"
+	for idx, blockDevice := range d.AWSMachineClass.Spec.BlockDevices[1:] {
+		dname := dnamePrefix + dnameSuffix[idx : idx+1]
+		blkDeviceMapping := getDeviceMapping(&dname, blockDevice, true)
+		blkDeviceMappings = append(blkDeviceMappings, &blkDeviceMapping)
+	}
 
 	// Add tags to the created machine
 	tagList := []*ec2.Tag{}
@@ -140,6 +140,23 @@ func (d *AWSDriver) Create() (string, string, error) {
 	metrics.APIRequestCount.With(prometheus.Labels{"provider": "aws", "service": "ecs"}).Inc()
 
 	return d.encodeMachineID(d.AWSMachineClass.Spec.Region, *runResult.Instances[0].InstanceId), *runResult.Instances[0].PrivateDnsName, nil
+}
+
+func getDeviceMapping(deviceName *string, blockDevice v1alpha1.AWSBlockDeviceMappingSpec, encrypted bool) ec2.BlockDeviceMapping {
+	volumeSize := blockDevice.Ebs.VolumeSize
+	volumeType := blockDevice.Ebs.VolumeType
+	blkDeviceMapping := ec2.BlockDeviceMapping{
+		DeviceName: deviceName,
+		Ebs: &ec2.EbsBlockDevice{
+			Encrypted: &encrypted,
+			VolumeSize: &volumeSize,
+			VolumeType: &volumeType,
+		},
+	}
+	if volumeType == "io1" {
+		blkDeviceMapping.Ebs.Iops = &blockDevice.Ebs.Iops
+	}
+	return blkDeviceMapping
 }
 
 // Delete method is used to delete a AWS machine

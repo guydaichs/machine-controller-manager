@@ -116,7 +116,7 @@ func validateAWSClassSpecTags(tags map[string]string, fldPath *field.Path) field
 
 func validateBlockDevices(blockDevices []machine.AWSBlockDeviceMappingSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if len(blockDevices) > 1 {
+	if len(blockDevices) > 2 {
 		allErrs = append(allErrs, field.Required(fldPath.Child(""), "Can only specify one (root) block device"))
 	} else if len(blockDevices) == 1 {
 		if blockDevices[0].Ebs.VolumeSize <= 0 {
