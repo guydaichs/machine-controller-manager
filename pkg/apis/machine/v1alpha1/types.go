@@ -1234,7 +1234,7 @@ type AlicloudMachineClassSpec struct {
 	VSwitchID               string                  `json:"vSwitchID"`
 	PrivateIPAddress        string                  `json:"privateIPAddress,omitempty"`
 	SystemDisk              *AlicloudSystemDisk     `json:"systemDisk,omitempty"`
-	DataDisks               []*AlicloudDataDisk     `json:"disks,omitempty"`
+	DataDisks               []AlicloudDataDisk      `json:"disks,omitempty"`
 	InstanceChargeType      string                  `json:"instanceChargeType,omitempty"`
 	InternetChargeType      string                  `json:"internetChargeType,omitempty"`
 	InternetMaxBandwidthIn  *int                    `json:"internetMaxBandwidthIn,omitempty"`

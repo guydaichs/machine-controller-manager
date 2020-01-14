@@ -1086,6 +1086,7 @@ type AlicloudMachineClassSpec struct {
 	VSwitchID               string
 	PrivateIPAddress        string
 	SystemDisk              *AlicloudSystemDisk
+	DataDisks               []AlicloudDataDisk
 	InstanceChargeType      string
 	InternetChargeType      string
 	InternetMaxBandwidthIn  *int
@@ -1101,6 +1102,15 @@ type AlicloudMachineClassSpec struct {
 type AlicloudSystemDisk struct {
 	Category string
 	Size     int
+}
+
+// AlicloudDataDisk describes DataDisk for Alicloud.
+type AlicloudDataDisk struct {
+	Name        string
+	Category    string
+	Description string
+	Encrypted   bool
+	Size        int
 }
 
 /********************** PacketMachineClass APIs ***************/
