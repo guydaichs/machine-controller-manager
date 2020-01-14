@@ -969,6 +969,7 @@ type AzureHardwareProfile struct {
 type AzureStorageProfile struct {
 	ImageReference AzureImageReference `json:"imageReference,omitempty"`
 	OsDisk         AzureOSDisk         `json:"osDisk,omitempty"`
+	DataDisks      []AzureDataDisk     `json:"dataDisks,omitempty"`
 }
 
 // AzureImageReference is specifies information about the image to use. You can specify information about platform images,
@@ -984,6 +985,14 @@ type AzureImageReference struct {
 // information about disks, see [About disks and VHDs for Azure virtual
 // machines](https://docs.microsoft.com/azure/virtual-machines/virtual-machines-windows-about-disks-vhds?toc=%2fazure%2fvirtual-machines%2fwindows%2ftoc.json).
 type AzureOSDisk struct {
+	Name         string                     `json:"name,omitempty"`
+	Caching      string                     `json:"caching,omitempty"`
+	ManagedDisk  AzureManagedDiskParameters `json:"managedDisk,omitempty"`
+	DiskSizeGB   int32                      `json:"diskSizeGB,omitempty"`
+	CreateOption string                     `json:"createOption,omitempty"`
+}
+
+type AzureDataDisk struct {
 	Name         string                     `json:"name,omitempty"`
 	Caching      string                     `json:"caching,omitempty"`
 	ManagedDisk  AzureManagedDiskParameters `json:"managedDisk,omitempty"`
@@ -1236,7 +1245,7 @@ type AlicloudMachineClassSpec struct {
 	VSwitchID               string                  `json:"vSwitchID"`
 	PrivateIPAddress        string                  `json:"privateIPAddress,omitempty"`
 	SystemDisk              *AlicloudSystemDisk     `json:"systemDisk,omitempty"`
-	DataDisks               []*AlicloudDataDisk     `json:"disks,omitempty"`
+	DataDisks               []AlicloudDataDisk      `json:"dataDisks,omitempty"`
 	InstanceChargeType      string                  `json:"instanceChargeType,omitempty"`
 	InternetChargeType      string                  `json:"internetChargeType,omitempty"`
 	InternetMaxBandwidthIn  *int                    `json:"internetMaxBandwidthIn,omitempty"`

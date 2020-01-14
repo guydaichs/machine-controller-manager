@@ -909,6 +909,14 @@ type AzureOSDisk struct {
 	CreateOption string
 }
 
+type AzureDataDisk struct {
+	Name         string
+	Caching      string
+	ManagedDisk  AzureManagedDiskParameters
+	DiskSizeGB   int32
+	CreateOption string
+}
+
 // AzureManagedDiskParameters is the parameters of a managed disk.
 type AzureManagedDiskParameters struct {
 	ID                 string
@@ -1088,6 +1096,7 @@ type AlicloudMachineClassSpec struct {
 	VSwitchID               string
 	PrivateIPAddress        string
 	SystemDisk              *AlicloudSystemDisk
+	DataDisks               []AlicloudDataDisk
 	InstanceChargeType      string
 	InternetChargeType      string
 	InternetMaxBandwidthIn  *int
@@ -1103,6 +1112,15 @@ type AlicloudMachineClassSpec struct {
 type AlicloudSystemDisk struct {
 	Category string
 	Size     int
+}
+
+// AlicloudDataDisk describes DataDisk for Alicloud.
+type AlicloudDataDisk struct {
+	Name        string
+	Category    string
+	Description string
+	Encrypted   bool
+	Size        int
 }
 
 /********************** PacketMachineClass APIs ***************/

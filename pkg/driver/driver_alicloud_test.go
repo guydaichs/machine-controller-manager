@@ -1,7 +1,12 @@
 package driver
 
 import (
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"strconv"
 	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
@@ -104,6 +109,58 @@ func TestIDToName(t *testing.T) {
 		t.Error("idToName() is not working")
 	}
 }
+
+func TestAliCloudDriverSuite(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Driver AliCloud Suite")
+}
+
+var _ = Describe("Driver AliCloud", func() {
+	Context("Generate Data Disk Requests", func() {
+
+		It("should generate multiple data disk requests", func() {
+			c := &AlicloudDriver{}
+			dataDisks := []v1alpha1.AlicloudDataDisk{
+				{
+					Name: "dd1",
+					Category: "cloud_efficiency",
+					Description: "this is a disk",
+					Encrypted: true,
+					Size: 100,
+				},
+				{
+					Name: "dd2",
+					Category: "cloud_ssd",
+					Description: "this is also a disk",
+					Encrypted: false,
+					Size: 50,
+				},
+			}
+
+			generatedDataDisksRequests := c.generateDataDiskRequests(dataDisks)
+			expectedDataDiskRequests := []ecs.RunInstancesDataDisk{
+				{
+					Size:               "100",
+					Category:           "cloud_efficiency",
+					Encrypted:          strconv.FormatBool(true),
+					DiskName:           "dd1",
+					Description:        "this is a disk",
+					DeleteWithInstance: strconv.FormatBool(true),
+				},
+				{
+					Size:               "50",
+					Category:           "cloud_ssd",
+					Encrypted:          strconv.FormatBool(false),
+					DiskName:           "dd2",
+					Description:        "this is also a disk",
+					DeleteWithInstance: strconv.FormatBool(true),
+				},
+			}
+
+			Expect(generatedDataDisksRequests).To(Equal(expectedDataDiskRequests))
+		})
+	})
+})
 
 // real[2..]'s order is NOT predicted as tags which generated them is a MAP!!!
 func checkRunInstanceTags(leadErrMsg string, t *testing.T, real, expected []ecs.RunInstancesTag) {

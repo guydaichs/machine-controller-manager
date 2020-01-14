@@ -21,14 +21,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strconv"
-	"strings"
-	"sync"
-
-	v1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
+	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-11-01/network"
@@ -99,6 +98,22 @@ func (d *AzureDriver) getVMParameters(vmName string, networkInterfaceReferenceID
 		tagList[idx] = to.StringPtr(element)
 	}
 
+	var dataDisks []compute.DataDisk
+	for _, azureDataDisk := range d.AzureMachineClass.Spec.Properties.StorageProfile.DataDisks {
+		suffix := "-" + azureDataDisk.Name + dataDiskSuffix
+		dataDiskName := dependencyNameFromVMName(vmName, suffix)
+		dataDisk := compute.DataDisk{
+			Name:    &dataDiskName,
+			Caching: compute.CachingTypes(azureDataDisk.Caching),
+			ManagedDisk: &compute.ManagedDiskParameters{
+				StorageAccountType: compute.StorageAccountTypes(azureDataDisk.ManagedDisk.StorageAccountType),
+			},
+			DiskSizeGB:   &azureDataDisk.DiskSizeGB,
+			CreateOption: compute.DiskCreateOptionTypes(azureDataDisk.CreateOption),
+		}
+		dataDisks = append(dataDisks, dataDisk)
+	}
+
 	publisher, offer, sku, version := getAzureImageDetails(d)
 
 	VMParameters := compute.VirtualMachine{
@@ -124,6 +139,7 @@ func (d *AzureDriver) getVMParameters(vmName string, networkInterfaceReferenceID
 					DiskSizeGB:   &d.AzureMachineClass.Spec.Properties.StorageProfile.OsDisk.DiskSizeGB,
 					CreateOption: compute.DiskCreateOptionTypes(d.AzureMachineClass.Spec.Properties.StorageProfile.OsDisk.CreateOption),
 				},
+				DataDisks: &dataDisks,
 			},
 			OsProfile: &compute.OSProfile{
 				ComputerName:  &vmName,
@@ -905,6 +921,7 @@ func decodeMachineID(id string) string {
 const (
 	nicSuffix  = "-nic"
 	diskSuffix = "-os-disk"
+	dataDiskSuffix = "-data-disk"
 )
 
 func dependencyNameFromVMName(vmName, suffix string) string {
