@@ -641,6 +641,11 @@ func (in *AzureStorageProfile) DeepCopyInto(out *AzureStorageProfile) {
 	*out = *in
 	in.ImageReference.DeepCopyInto(&out.ImageReference)
 	out.OsDisk = in.OsDisk
+	if in.DataDisks != nil {
+		in, out := &in.DataDisks, &out.DataDisks
+		*out = make([]AzureDataDisk, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

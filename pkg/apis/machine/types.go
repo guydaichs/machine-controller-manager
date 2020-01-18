@@ -888,6 +888,7 @@ type AzureHardwareProfile struct {
 type AzureStorageProfile struct {
 	ImageReference AzureImageReference
 	OsDisk         AzureOSDisk
+	DataDisks      []AzureDataDisk
 }
 
 // AzureImageReference is specifies information about the image to use. You can specify information about platform images,
