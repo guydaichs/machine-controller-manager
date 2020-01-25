@@ -994,6 +994,7 @@ type AzureOSDisk struct {
 
 type AzureDataDisk struct {
 	Name         string                     `json:"name,omitempty"`
+	Lun          int32                      `json:"lun,omitempty"`
 	Caching      string                     `json:"caching,omitempty"`
 	ManagedDisk  AzureManagedDiskParameters `json:"managedDisk,omitempty"`
 	DiskSizeGB   int32                      `json:"diskSizeGB,omitempty"`
@@ -1258,12 +1259,13 @@ type AlicloudMachineClassSpec struct {
 }
 
 type AlicloudDataDisk struct {
-	Name        string `json:"name"`
-	Category    string `json:"category"`
+	Name     string `json:"name"`
+	Category string `json:"category"`
 	// +optional
-	Description string `json:"description"`
-	Encrypted   bool   `json:"encrypted"`
-	Size        int    `json:"size"`
+	Description        string `json:"description"`
+	Encrypted          bool   `json:"encrypted"`
+	DeleteWithInstance bool   `json:"deleteWithInstance"`
+	Size               int    `json:"size"`
 }
 
 // AlicloudSystemDisk describes SystemDisk for Alicloud.

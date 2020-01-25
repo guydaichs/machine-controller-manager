@@ -118,7 +118,7 @@ func (c *AlicloudDriver) generateDataDiskRequests(disks []v1alpha1.AlicloudDataD
 
 		dataDiskRequest := ecs.RunInstancesDataDisk{
 			Category:           disk.Category,
-			DeleteWithInstance: strconv.FormatBool(true),
+			DeleteWithInstance: strconv.FormatBool(disk.DeleteWithInstance),
 			Encrypted:          strconv.FormatBool(disk.Encrypted),
 			DiskName:           disk.Name,
 			Description:        disk.Description,

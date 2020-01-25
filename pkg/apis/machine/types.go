@@ -912,6 +912,7 @@ type AzureOSDisk struct {
 
 type AzureDataDisk struct {
 	Name         string
+	Lun          int32
 	Caching      string
 	ManagedDisk  AzureManagedDiskParameters
 	DiskSizeGB   int32
@@ -1122,6 +1123,7 @@ type AlicloudDataDisk struct {
 	Description string
 	Encrypted   bool
 	Size        int
+	DeleteWithInstance bool
 }
 
 /********************** PacketMachineClass APIs ***************/

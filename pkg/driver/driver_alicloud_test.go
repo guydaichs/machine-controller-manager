@@ -125,6 +125,7 @@ var _ = Describe("Driver AliCloud", func() {
 					Name: "dd1",
 					Category: "cloud_efficiency",
 					Description: "this is a disk",
+					DeleteWithInstance: true,
 					Encrypted: true,
 					Size: 100,
 				},
@@ -132,6 +133,7 @@ var _ = Describe("Driver AliCloud", func() {
 					Name: "dd2",
 					Category: "cloud_ssd",
 					Description: "this is also a disk",
+					DeleteWithInstance: false,
 					Encrypted: false,
 					Size: 50,
 				},
@@ -153,7 +155,7 @@ var _ = Describe("Driver AliCloud", func() {
 					Encrypted:          strconv.FormatBool(false),
 					DiskName:           "dd2",
 					Description:        "this is also a disk",
-					DeleteWithInstance: strconv.FormatBool(true),
+					DeleteWithInstance: strconv.FormatBool(false),
 				},
 			}
 

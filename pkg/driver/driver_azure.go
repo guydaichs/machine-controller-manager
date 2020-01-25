@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,29 +99,8 @@ func (d *AzureDriver) getVMParameters(vmName string, networkInterfaceReferenceID
 		tagList[idx] = to.StringPtr(element)
 	}
 
-	azureDataDisks := d.AzureMachineClass.Spec.Properties.StorageProfile.DataDisks[:]
-
-	// sort volumes for consistent lun numbering
-	sort.Slice(azureDataDisks, func(i, j int) bool {
-		return azureDataDisks[i].Name > azureDataDisks[j].Name
-	})
-
-	var dataDisks []compute.DataDisk
-	for idx, azureDataDisk := range azureDataDisks {
-		dataDiskName := dependencyNameFromVMNameAndDependancy(azureDataDisk.Name, vmName, dataDiskSuffix)
-		dataDiskLun := int32(idx)
-		dataDisk := compute.DataDisk{
-			Lun:     &dataDiskLun,
-			Name:    &dataDiskName,
-			Caching: compute.CachingTypes(azureDataDisk.Caching),
-			ManagedDisk: &compute.ManagedDiskParameters{
-				StorageAccountType: compute.StorageAccountTypes(azureDataDisk.ManagedDisk.StorageAccountType),
-			},
-			DiskSizeGB:   &azureDataDisk.DiskSizeGB,
-			CreateOption: compute.DiskCreateOptionTypes(azureDataDisk.CreateOption),
-		}
-		dataDisks = append(dataDisks, dataDisk)
-	}
+	azureDataDisks := d.AzureMachineClass.Spec.Properties.StorageProfile.DataDisks
+	dataDisks := d.generateDataDisks(vmName, azureDataDisks)
 
 	publisher, offer, sku, version := getAzureImageDetails(d)
 
@@ -192,6 +170,25 @@ func (d *AzureDriver) getVMParameters(vmName string, networkInterfaceReferenceID
 	return VMParameters
 }
 
+func (d *AzureDriver) generateDataDisks(vmName string, azureDataDisks []v1alpha1.AzureDataDisk) []compute.DataDisk {
+	var dataDisks []compute.DataDisk
+	for _, azureDataDisk := range azureDataDisks {
+		dataDiskName := dependencyNameFromVMNameAndDependancy(azureDataDisk.Name, vmName, dataDiskSuffix)
+		dataDisk := compute.DataDisk{
+			Lun:     &azureDataDisk.Lun,
+			Name:    &dataDiskName,
+			Caching: compute.CachingTypes(azureDataDisk.Caching),
+			ManagedDisk: &compute.ManagedDiskParameters{
+				StorageAccountType: compute.StorageAccountTypes(azureDataDisk.ManagedDisk.StorageAccountType),
+			},
+			DiskSizeGB:   &azureDataDisk.DiskSizeGB,
+			CreateOption: compute.DiskCreateOptionTypes(azureDataDisk.CreateOption),
+		}
+		dataDisks = append(dataDisks, dataDisk)
+	}
+	return dataDisks
+}
+
 func getAzureImageDetails(d *AzureDriver) (publisher, offer, sku, version string) {
 	splits := strings.Split(*d.AzureMachineClass.Spec.Properties.StorageProfile.ImageReference.URN, ":")
 	publisher = splits[0]
@@ -230,10 +227,9 @@ func (d *AzureDriver) Delete(machineID string) error {
 		nicName           = dependencyNameFromVMName(vmName, nicSuffix)
 		diskName          = dependencyNameFromVMName(vmName, diskSuffix)
 		resourceGroupName = d.AzureMachineClass.Spec.ResourceGroup
-		dataDiskNames	  = dependencyNamesFromVMName(azDataDiskNames, vmName, dataDiskSuffix)
+		dataDiskNames     = dependencyNamesFromVMName(azDataDiskNames, vmName, dataDiskSuffix)
 	)
 
-	glog.Errorf("In Delete() with az data disks %+v data disks %+v", dataDiskNames, azDataDiskNames)
 	return clients.deleteVMNicDisks(ctx, resourceGroupName, vmName, nicName, diskName, dataDiskNames)
 }
 
@@ -363,7 +359,7 @@ func (d *AzureDriver) createVMNicDisk() (*compute.VirtualMachine, error) {
 		azDataDiskNames   = getAzureDataDiskNames(d.AzureMachineClass.Spec.Properties.StorageProfile.DataDisks)
 		nicName           = dependencyNameFromVMName(vmName, nicSuffix)
 		diskName          = dependencyNameFromVMName(vmName, diskSuffix)
-		dataDiskNames	  = dependencyNamesFromVMName(azDataDiskNames, vmName, dataDiskSuffix)
+		dataDiskNames     = dependencyNamesFromVMName(azDataDiskNames, vmName, dataDiskSuffix)
 	)
 
 	clients, err := d.setup()
@@ -729,7 +725,6 @@ func (clients *azureDriverClients) deleteVMNicDisks(ctx context.Context, resourc
 		return onARMAPIErrorFail(prometheusServiceVM, vmErr, "vm.Get")
 	}
 
-
 	var deleters []func() error
 
 	// Fetch the NIC and deleted it
@@ -753,16 +748,15 @@ func (clients *azureDriverClients) deleteVMNicDisks(ctx context.Context, resourc
 	diskDeleter := clients.getDeleterForDisk(ctx, resourceGroupName, diskName)
 	deleters = append(deleters, diskDeleter)
 
-	glog.Errorf("creating deleters for data disks %+v", dataDiskNames)
-    for _, dataDiskName := range dataDiskNames {
-        dataDiskDeleter := clients.getDeleterForDisk(ctx, resourceGroupName, dataDiskName)
+	for _, dataDiskName := range dataDiskNames {
+		dataDiskDeleter := clients.getDeleterForDisk(ctx, resourceGroupName, dataDiskName)
 		deleters = append(deleters, dataDiskDeleter)
-    }
+	}
 
-	return runInParallel(deleters...)
+	return runInParallel(deleters)
 }
 
-func (clients *azureDriverClients) getDeleterForDisk(ctx context.Context, resourceGroupName string, diskName string) (func() error) {
+func (clients *azureDriverClients) getDeleterForDisk(ctx context.Context, resourceGroupName string, diskName string) func() error {
 	return func() error {
 		if vmHoldingDisk, err := clients.fetchAttachedVMfromDisk(ctx, resourceGroupName, diskName); err != nil {
 			if notFound(err) {
@@ -906,7 +900,7 @@ func onErrorFail(err error, format string, v ...interface{}) error {
 	return err
 }
 
-func runInParallel(funcs ...(func() error)) error {
+func runInParallel(funcs []func() error) error {
 	//
 	// Execute multiple functions (which return an error) as go functions concurrently.
 	//
@@ -956,20 +950,19 @@ const (
 )
 
 func getAzureDataDiskNames(azureDataDisks []v1alpha1.AzureDataDisk) []string {
-    azureDataDiskNames := make([]string, len(azureDataDisks))
-    for i, v := range azureDataDisks {
-        azureDataDiskNames[i] = v.Name
-    }
-    return azureDataDiskNames
+	azureDataDiskNames := make([]string, len(azureDataDisks))
+	for i, v := range azureDataDisks {
+		azureDataDiskNames[i] = v.Name
+	}
+	return azureDataDiskNames
 }
-
 
 func dependencyNamesFromVMName(dependencies []string, vmname, suffix string) []string {
 	dependencyNames := make([]string, len(dependencies))
-    for i, dependency := range dependencies {
-        dependencyNames[i] = dependencyNameFromVMNameAndDependancy(dependency, vmname, suffix)
-    }
-    return dependencyNames
+	for i, dependency := range dependencies {
+		dependencyNames[i] = dependencyNameFromVMNameAndDependancy(dependency, vmname, suffix)
+	}
+	return dependencyNames
 }
 
 func dependencyNameFromVMNameAndDependancy(dependency, vmName, suffix string) string {
