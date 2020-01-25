@@ -2,120 +2,113 @@ package driver
 
 import (
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	"strconv"
-	"testing"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"strconv"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
 
-func TestTagsOrdered(t *testing.T) {
-	tags := map[string]string{
-		"kubernetes.io/cluster/ali-test": "1",
-		"kubernetes.io/role/worker":      "1",
-		"taga":                           "tagvala",
-		"tagb":                           "tagvalb",
-		"tagc":                           "tagvalc",
-	}
-	c := &AlicloudDriver{}
-	res, err := c.toInstanceTags(tags)
-	if err != nil {
-		t.Errorf("toInstanceTags in TestTagsOrdered should not generate error: %v", err)
-	}
-
-	expected := []ecs.RunInstancesTag{
-		{
-			Key:   "kubernetes.io/cluster/ali-test",
-			Value: "1",
-		},
-		{
-			Key:   "kubernetes.io/role/worker",
-			Value: "1",
-		},
-		{
-			Key:   "taga",
-			Value: "tagvala",
-		},
-		{
-			Key:   "tagb",
-			Value: "tagvalb",
-		},
-		{
-			Key:   "tagc",
-			Value: "tagvalc",
-		},
-	}
-	checkRunInstanceTags("Function TestTagsOrdered: ", t, res, expected)
-}
-
-func TestNoClusterTags(t *testing.T) {
-	tags := map[string]string{
-		"kubernetes.io/role/worker": "1",
-		"taga":                      "tagvala",
-		"tagb":                      "tagvalb",
-		"tagc":                      "tagvalc",
-	}
-	c := &AlicloudDriver{}
-	_, err := c.toInstanceTags(tags)
-	if err == nil {
-		t.Errorf("toInstanceTags in TestRandomOrderTags should return an error")
-	}
-}
-func TestRandomOrderTags(t *testing.T) {
-	tags := map[string]string{
-		"taga":                           "tagvala",
-		"tagb":                           "tagvalb",
-		"kubernetes.io/cluster/ali-test": "1",
-		"kubernetes.io/role/worker":      "1",
-		"tagc":                           "tagvalc",
-	}
-	c := &AlicloudDriver{}
-	res, err := c.toInstanceTags(tags)
-	if err != nil {
-		t.Errorf("toInstanceTags in TestRandomOrderTags should not generate error: %v", err)
-	}
-
-	expected := []ecs.RunInstancesTag{
-		{
-			Key:   "kubernetes.io/cluster/ali-test",
-			Value: "1",
-		},
-		{
-			Key:   "kubernetes.io/role/worker",
-			Value: "1",
-		},
-		{
-			Key:   "taga",
-			Value: "tagvala",
-		},
-		{
-			Key:   "tagb",
-			Value: "tagvalb",
-		},
-		{
-			Key:   "tagc",
-			Value: "tagvalc",
-		},
-	}
-	checkRunInstanceTags("Function TestRandomOrderTags: ", t, res, expected)
-}
-func TestIDToName(t *testing.T) {
-	id := "i-uf69zddmom11ci7est12"
-
-	c := &AlicloudDriver{}
-	if "iZuf69zddmom11ci7est12Z" != c.idToName(id) {
-		t.Error("idToName() is not working")
-	}
-}
-
-func TestAliCloudDriverSuite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Driver AliCloud Suite")
-}
-
 var _ = Describe("Driver AliCloud", func() {
+	Context("Generate Instance Tags", func() {
+
+		It("Should maintain order of cluster and worker tags", func() {
+			tags := map[string]string{
+				"kubernetes.io/cluster/ali-test": "1",
+				"kubernetes.io/role/worker":      "1",
+				"taga":                           "tagvala",
+				"tagb":                           "tagvalb",
+				"tagc":                           "tagvalc",
+			}
+			c := &AlicloudDriver{}
+			res, err := c.toInstanceTags(tags)
+			expected := []ecs.RunInstancesTag{
+				{
+					Key:   "kubernetes.io/cluster/ali-test",
+					Value: "1",
+				},
+				{
+					Key:   "kubernetes.io/role/worker",
+					Value: "1",
+				},
+				{
+					Key:   "taga",
+					Value: "tagvala",
+				},
+				{
+					Key:   "tagb",
+					Value: "tagvalb",
+				},
+				{
+					Key:   "tagc",
+					Value: "tagvalc",
+				},
+			}
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res[0:2]).To(Equal(expected[0:2]))
+			Expect(res[2:5]).To(ConsistOf(expected[2:5]))
+		})
+
+		It("Should fail if no cluster tags", func() {
+			tags := map[string]string{
+				"kubernetes.io/role/worker": "1",
+				"taga":                      "tagvala",
+				"tagb":                      "tagvalb",
+				"tagc":                      "tagvalc",
+			}
+			c := &AlicloudDriver{}
+			_, err := c.toInstanceTags(tags)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should order cluster and worker tags", func() {
+			tags := map[string]string{
+				"taga":                           "tagvala",
+				"tagb":                           "tagvalb",
+				"kubernetes.io/cluster/ali-test": "1",
+				"kubernetes.io/role/worker":      "1",
+				"tagc":                           "tagvalc",
+			}
+			c := &AlicloudDriver{}
+			res, err := c.toInstanceTags(tags)
+
+			expected := []ecs.RunInstancesTag{
+				{
+					Key:   "kubernetes.io/cluster/ali-test",
+					Value: "1",
+				},
+				{
+					Key:   "kubernetes.io/role/worker",
+					Value: "1",
+				},
+				{
+					Key:   "taga",
+					Value: "tagvala",
+				},
+				{
+					Key:   "tagb",
+					Value: "tagvalb",
+				},
+				{
+					Key:   "tagc",
+					Value: "tagvalc",
+				},
+			}
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res[0:2]).To(Equal(expected[0:2]))
+			Expect(res[2:5]).To(ConsistOf(expected[2:5]))
+		})
+
+		It("Should generate name from ID", func() {
+			id := "i-uf69zddmom11ci7est12"
+			expectedName := "iZuf69zddmom11ci7est12Z"
+			c := &AlicloudDriver{}
+			res := c.idToName(id)
+			Expect(res).To(Equal(expectedName))
+		})
+
+	})
+
 	Context("Generate Data Disk Requests", func() {
 
 		It("should generate multiple data disk requests", func() {
@@ -161,32 +154,31 @@ var _ = Describe("Driver AliCloud", func() {
 
 			Expect(generatedDataDisksRequests).To(Equal(expectedDataDiskRequests))
 		})
+
+		It("should not encrypt or delete with instance by default", func() {
+			c := &AlicloudDriver{}
+			dataDisks := []v1alpha1.AlicloudDataDisk{
+				{
+					Name: "dd1",
+					Category: "cloud_efficiency",
+					Description: "this is a disk",
+					Size: 100,
+				},
+			}
+
+			generatedDataDisksRequests := c.generateDataDiskRequests(dataDisks)
+			expectedDataDiskRequests := []ecs.RunInstancesDataDisk{
+				{
+					Size:               "100",
+					Category:           "cloud_efficiency",
+					Encrypted:          strconv.FormatBool(false),
+					DiskName:           "dd1",
+					Description:        "this is a disk",
+					DeleteWithInstance: strconv.FormatBool(false),
+				},
+			}
+
+			Expect(generatedDataDisksRequests).To(Equal(expectedDataDiskRequests))
+		})
 	})
 })
-
-// real[2..]'s order is NOT predicted as tags which generated them is a MAP!!!
-func checkRunInstanceTags(leadErrMsg string, t *testing.T, real, expected []ecs.RunInstancesTag) {
-	if len(real) != len(expected) {
-		t.Errorf("%s: %s", leadErrMsg, "count of generated tags is not as expected")
-		return
-	}
-
-	// index 0 and 1 is static
-	if real[0] != expected[0] {
-		t.Errorf("%s: tag %s should be at index %d", leadErrMsg, expected[0], 0)
-	}
-	if real[1] != expected[1] {
-		t.Errorf("%s: tag %s should be at index %d", leadErrMsg, expected[1], 1)
-	}
-
-found:
-	for i := 2; i < len(expected); i++ {
-		for j := 2; j < len(real); j++ {
-			if expected[i] == real[j] {
-				continue found
-			}
-		}
-		t.Errorf("%s: tag %s is not in real tags", leadErrMsg, expected[i])
-		return
-	}
-}

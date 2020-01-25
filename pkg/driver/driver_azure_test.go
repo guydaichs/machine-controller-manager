@@ -19,17 +19,10 @@ package driver
 
 import (
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
-
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 )
-
-func TestAzureDriverSuite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Driver Azure Suite")
-}
 
 var _ = Describe("Driver Azure", func() {
 

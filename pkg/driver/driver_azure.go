@@ -174,14 +174,16 @@ func (d *AzureDriver) generateDataDisks(vmName string, azureDataDisks []v1alpha1
 	var dataDisks []compute.DataDisk
 	for _, azureDataDisk := range azureDataDisks {
 		dataDiskName := dependencyNameFromVMNameAndDependancy(azureDataDisk.Name, vmName, dataDiskSuffix)
+		dataDiskLun := azureDataDisk.Lun
+		dataDiskSize := azureDataDisk.DiskSizeGB
 		dataDisk := compute.DataDisk{
-			Lun:     &azureDataDisk.Lun,
+			Lun:     &dataDiskLun,
 			Name:    &dataDiskName,
 			Caching: compute.CachingTypes(azureDataDisk.Caching),
 			ManagedDisk: &compute.ManagedDiskParameters{
 				StorageAccountType: compute.StorageAccountTypes(azureDataDisk.ManagedDisk.StorageAccountType),
 			},
-			DiskSizeGB:   &azureDataDisk.DiskSizeGB,
+			DiskSizeGB:   &dataDiskSize,
 			CreateOption: compute.DiskCreateOptionTypes(azureDataDisk.CreateOption),
 		}
 		dataDisks = append(dataDisks, dataDisk)
