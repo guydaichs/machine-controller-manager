@@ -113,6 +113,7 @@ var _ = Describe("Driver AliCloud", func() {
 
 		It("should generate multiple data disk requests", func() {
 			c := &AlicloudDriver{}
+			c.MachineName = "machinename"
 			dataDisks := []v1alpha1.AlicloudDataDisk{
 				{
 					Name: "dd1",
@@ -138,7 +139,7 @@ var _ = Describe("Driver AliCloud", func() {
 					Size:               "100",
 					Category:           "cloud_efficiency",
 					Encrypted:          strconv.FormatBool(true),
-					DiskName:           "dd1",
+					DiskName:           "machinename-dd1-data-disk",
 					Description:        "this is a disk",
 					DeleteWithInstance: strconv.FormatBool(true),
 				},
@@ -146,7 +147,7 @@ var _ = Describe("Driver AliCloud", func() {
 					Size:               "50",
 					Category:           "cloud_ssd",
 					Encrypted:          strconv.FormatBool(false),
-					DiskName:           "dd2",
+					DiskName:           "machinename-dd2-data-disk",
 					Description:        "this is also a disk",
 					DeleteWithInstance: strconv.FormatBool(false),
 				},
@@ -157,6 +158,7 @@ var _ = Describe("Driver AliCloud", func() {
 
 		It("should not encrypt or delete with instance by default", func() {
 			c := &AlicloudDriver{}
+			c.MachineName = "machinename"
 			dataDisks := []v1alpha1.AlicloudDataDisk{
 				{
 					Name: "dd1",
@@ -172,7 +174,7 @@ var _ = Describe("Driver AliCloud", func() {
 					Size:               "100",
 					Category:           "cloud_efficiency",
 					Encrypted:          strconv.FormatBool(false),
-					DiskName:           "dd1",
+					DiskName:           "machinename-dd1-data-disk",
 					Description:        "this is a disk",
 					DeleteWithInstance: strconv.FormatBool(false),
 				},

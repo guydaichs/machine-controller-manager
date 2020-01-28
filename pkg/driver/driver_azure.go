@@ -846,7 +846,7 @@ func (clients *azureDriverClients) deleteNIC(ctx context.Context, resourceGroupN
 }
 
 func (clients *azureDriverClients) deleteDisk(ctx context.Context, resourceGroupName string, diskName string) error {
-	glog.V(2).Infof("Disk delePte started for %q", diskName)
+	glog.V(2).Infof("Disk delete started for %q", diskName)
 	defer glog.V(2).Infof("Disk deleted for %q", diskName)
 
 	future, err := clients.disk.Delete(ctx, resourceGroupName, diskName)

@@ -16,13 +16,15 @@ spec:
   - name: disk1
     size: 50
     category: cloud_ssd
-    encrypted: true
+    encrypted: false
     description: 50 GB disk description
+    deleteWithInstance: true
   - name: disk2
     size: 40
-    category: cloud_ssd
+    category: cloud_efficiency
     encrypted: true
     description: 40 GB disk description
+    deleteWithInstance: true
   systemDisk:
     category: cloud_efficiency # cloud, cloud_efficiency, cloud_ssd, ephemeral_ssd
     size: 30 # 20-500
