@@ -28,11 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func TestAWSDriverSuite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Driver AWS Suite")
-}
-
 var _ = Describe("Driver AWS", func() {
 
 	Context("GenerateSecurityGroups Driver AWS Spec", func() {
@@ -217,6 +212,36 @@ var _ = Describe("Driver AWS", func() {
 			rootDevice := aws.String("/dev/sda")
 			disksGenerated, err := awsDriver.generateBlockDevices(disks, rootDevice)
 			var expectedDisks []*ec2.BlockDeviceMapping
+
+			Expect(disksGenerated).To(Equal(expectedDisks))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should not encrypt or delete on termination blockDevices by default", func() {
+			awsDriver := &AWSDriver{}
+			disks := []v1alpha1.AWSBlockDeviceMappingSpec{
+				{
+					Ebs: v1alpha1.AWSEbsBlockDeviceSpec{
+						VolumeSize: 32,
+						VolumeType: "gp2",
+					},
+				},
+			}
+
+			rootDevice := aws.String("/dev/sda")
+			disksGenerated, err := awsDriver.generateBlockDevices(disks, rootDevice)
+			expectedDisks := []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: aws.String("/dev/sda"),
+					Ebs: &ec2.EbsBlockDevice{
+						DeleteOnTermination: aws.Bool(false),
+						Encrypted:           aws.Bool(false),
+						VolumeSize:          aws.Int64(32),
+						Iops:                nil,
+						VolumeType:          aws.String("gp2"),
+					},
+				},
+			}
 
 			Expect(disksGenerated).To(Equal(expectedDisks))
 			Expect(err).ToNot(HaveOccurred())
